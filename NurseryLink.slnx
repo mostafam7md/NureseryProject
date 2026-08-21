@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/NurseryLink.Api/NurseryLink.Api.csproj" />
+    <Project Path="src/NurseryLink.Application/NurseryLink.Application.csproj" />
+    <Project Path="src/NurseryLink.Domain/NurseryLink.Domain.csproj" />
+    <Project Path="src/NurseryLink.Infrastructure/NurseryLink.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NurseryLink.IntegrationTests/NurseryLink.IntegrationTests.csproj" />
+    <Project Path="tests/NurseryLink.UnitTests/NurseryLink.UnitTests.csproj" />
+  </Folder>
+</Solution>
