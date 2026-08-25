@@ -2,7 +2,8 @@ namespace NurseryLink.Domain.Entities;
 
 public class Admin : Account
 {
-    public id? CreatedByAdminId { get; set; }
+    /// <summary>Which admin created this one. Null only for the seeded default admin.</summary>
+    public AccountId? CreatedByAdminId { get; set; }
 
     public Admin? CreatedByAdmin { get; set; }
     public ICollection<Admin> CreatedAdmins { get; set; } = [];

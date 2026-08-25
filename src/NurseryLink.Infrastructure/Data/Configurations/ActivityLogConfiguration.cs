@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using NurseryLink.Domain.Constants;
 using NurseryLink.Domain.Entities;
 
 namespace NurseryLink.Infrastructure.Data.Configurations;
@@ -13,11 +14,17 @@ public class ActivityLogConfiguration : IEntityTypeConfiguration<ActivityLog>
         builder.HasKey(al => al.Id);
 
         builder.Property(al => al.LogType).HasConversion<int>().IsRequired();
-        builder.Property(al => al.Payload).IsRequired();
+        builder.Property(al => al.Payload)
+            .HasMaxLength(NurseryConstants.ActivityPayloadMaxLength)
+            .IsRequired();
         builder.Property(al => al.LoggedAtUtc).IsRequired();
+        builder.Property(al => al.LocalDate).IsRequired();
+        builder.Property(al => al.CreatedAtUtc).IsRequired();
 
-        builder.HasIndex(al => new { al.StudentId, al.LoggedAtUtc });
-        builder.HasIndex(al => al.ClassId);
+        // Covers the two hot reads: a child's day (parent view, end-of-day summary) and the
+        // one-meal-per-type-per-day check the service performs before inserting a meal.
+        builder.HasIndex(al => new { al.StudentId, al.LocalDate, al.LogType });
+        builder.HasIndex(al => new { al.ClassId, al.LocalDate });
         builder.HasIndex(al => al.LoggedByAccountId);
 
         builder.HasOne(al => al.Student)

@@ -16,6 +16,7 @@ public class StudentConfiguration : IEntityTypeConfiguration<Student>
         builder.Property(s => s.FullName).HasMaxLength(NurseryConstants.FullNameMaxLength).IsRequired();
         builder.Property(s => s.StudentCode).HasMaxLength(NurseryConstants.StudentCodeMaxLength).IsRequired();
         builder.Property(s => s.DateOfBirth).IsRequired();
+        builder.Property(s => s.IsActive).IsRequired();
         builder.Property(s => s.CreatedAtUtc).IsRequired();
 
         builder.HasIndex(s => s.StudentCode).IsUnique();

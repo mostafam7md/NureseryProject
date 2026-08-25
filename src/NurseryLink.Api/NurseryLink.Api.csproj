@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>nurserylink-api-7c1b4e2a</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,1 +1,1 @@
-global using id = System.Guid;
+global using NurseryLink.Domain.Common;

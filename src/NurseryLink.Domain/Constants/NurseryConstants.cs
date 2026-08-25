@@ -18,4 +18,14 @@ public static class NurseryConstants
     public const int TargetTypeMaxLength = 50;
     public const int TargetIdMaxLength = 100;
     public const int DetailsMaxLength = 2000;
+
+    /// <summary>Cap on the ActivityLog JSON body so the hottest table does not carry an
+    /// unbounded LOB column.</summary>
+    public const int ActivityPayloadMaxLength = 1000;
+
+    /// <summary>SHA-256 rendered as lowercase hex.</summary>
+    public const int TokenHashLength = 64;
+
+    /// <summary>Long enough for an IPv6 address with an embedded IPv4 suffix.</summary>
+    public const int IpAddressMaxLength = 45;
 }

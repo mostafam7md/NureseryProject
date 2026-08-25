@@ -1,10 +1,8 @@
-using NurseryLink.Domain.Constants;
-
 namespace NurseryLink.Domain.Entities;
 
-public class AuditLog : BaseEntity
+public class AuditLog : BaseEntity<AuditLogId>
 {
-    public id AdminAccountId { get; set; }
+    public AccountId AdminAccountId { get; set; }
     public string Action { get; set; } = string.Empty;
     public string TargetType { get; set; } = string.Empty;
     public string TargetId { get; set; } = string.Empty;
