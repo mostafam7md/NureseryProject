@@ -4,6 +4,7 @@ using NurseryLink.Application.Common;
 using NurseryLink.Application.Common.Exceptions;
 using NurseryLink.Application.Common.Extensions;
 using NurseryLink.Application.Common.Interfaces;
+using NurseryLink.Application.Common.Services;
 using NurseryLink.Application.Features.Admins.Dtos;
 using NurseryLink.Domain.Entities;
 using NurseryLink.Domain.Enums;
@@ -21,16 +22,16 @@ public interface IAdminService
 
 public sealed class AdminService(
     IApplicationDbContext db,
-    ICurrentUser currentUser,
+    IAdminGuard adminGuard,
     IPasswordHasher passwordHasher,
     INurseryClock clock,
     IValidator<CreateAdminRequest> createValidator) : IAdminService
 {
     public async Task<AdminResponse> CreateAsync(CreateAdminRequest request, CancellationToken cancellationToken = default)
     {
-        await createValidator.ValidateAndThrowAsync(request, cancellationToken);
+        await createValidator.ValidateOrThrowAsync(request, cancellationToken);
 
-        var caller = await GetCallerAdminAsync(cancellationToken);
+        var caller = await adminGuard.RequireAdminAsync(Privilege.ManageAdmins, cancellationToken);
         var requestedPrivileges = request.Privileges.Distinct().ToArray();
 
         // ---- Authorization first, data checks second. -------------------------------------
@@ -114,7 +115,7 @@ public sealed class AdminService(
 
     public async Task<IReadOnlyList<AdminResponse>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        await EnsureCallerIsAdminAsync(cancellationToken);
+        await adminGuard.RequireAdminAsync(Privilege.ManageAdmins, cancellationToken);
 
         var admins = await db.Admins
             .AsNoTracking()
@@ -127,7 +128,7 @@ public sealed class AdminService(
 
     public async Task<AdminResponse> GetByIdAsync(AccountId adminId, CancellationToken cancellationToken = default)
     {
-        await EnsureCallerIsAdminAsync(cancellationToken);
+        await adminGuard.RequireAdminAsync(Privilege.ManageAdmins, cancellationToken);
 
         var admin = await db.Admins
             .AsNoTracking()
@@ -136,43 +137,6 @@ public sealed class AdminService(
             ?? throw new NotFoundException("Admin not found.");
 
         return ToResponse(admin, admin.EffectivePrivileges());
-    }
-
-    private async Task<Admin> GetCallerAdminAsync(CancellationToken cancellationToken)
-    {
-        var userId = currentUser.UserId ?? throw new UnauthorizedException();
-
-        if (!currentUser.IsAdmin)
-        {
-            throw new ForbiddenException("Only admins may perform this action.");
-        }
-
-        var admin = await db.Admins
-            .Include(a => a.Privileges)
-            .SingleOrDefaultAsync(a => a.Id == userId, cancellationToken);
-
-        if (admin is null)
-        {
-            throw new ForbiddenException("Caller is not an admin account.");
-        }
-
-        if (!admin.IsActive)
-        {
-            throw new ForbiddenException("This account has been deactivated.");
-        }
-
-        return admin;
-    }
-
-    private async Task EnsureCallerIsAdminAsync(CancellationToken cancellationToken)
-    {
-        var userId = currentUser.UserId ?? throw new UnauthorizedException();
-
-        if (!currentUser.IsAdmin ||
-            !await db.Admins.AnyAsync(a => a.Id == userId && a.IsActive, cancellationToken))
-        {
-            throw new ForbiddenException("Only admins may perform this action.");
-        }
     }
 
     private static AdminResponse ToResponse(Admin admin, IEnumerable<Privilege> privileges) =>

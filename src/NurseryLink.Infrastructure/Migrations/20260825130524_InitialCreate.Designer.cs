@@ -12,8 +12,8 @@ using NurseryLink.Infrastructure.Data;
 namespace NurseryLink.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260824115007_UpdateEntitiesModel")]
-    partial class UpdateEntitiesModel
+    [Migration("20260825130524_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -28,7 +28,6 @@ namespace NurseryLink.Infrastructure.Migrations
             modelBuilder.Entity("NurseryLink.Domain.Entities.Account", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("AccountType")
@@ -53,6 +52,16 @@ namespace NurseryLink.Infrastructure.Migrations
                     b.Property<bool>("IsSeeded")
                         .HasColumnType("bit");
 
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<string>("NormalizedUserName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -67,13 +76,21 @@ namespace NurseryLink.Infrastructure.Migrations
 
                     b.HasIndex("AccountType");
 
-                    b.HasIndex("Email")
+                    b.HasIndex("IsSeeded")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Accounts_OnlyOneSeededAdmin")
+                        .HasFilter("[IsSeeded] = 1");
+
+                    b.HasIndex("NormalizedEmail")
                         .IsUnique();
 
-                    b.HasIndex("UserName")
+                    b.HasIndex("NormalizedUserName")
                         .IsUnique();
 
-                    b.ToTable("Accounts", (string)null);
+                    b.ToTable("Accounts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Accounts_SeededAccountStaysActive", "[IsSeeded] = 0 OR [IsActive] = 1");
+                        });
 
                     b.UseTptMappingStrategy();
                 });
@@ -81,7 +98,6 @@ namespace NurseryLink.Infrastructure.Migrations
             modelBuilder.Entity("NurseryLink.Domain.Entities.ActivityLog", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("ClassId")
@@ -89,6 +105,9 @@ namespace NurseryLink.Infrastructure.Migrations
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateOnly>("LocalDate")
+                        .HasColumnType("date");
 
                     b.Property<int>("LogType")
                         .HasColumnType("int");
@@ -101,18 +120,19 @@ namespace NurseryLink.Infrastructure.Migrations
 
                     b.Property<string>("Payload")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<Guid>("StudentId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ClassId");
-
                     b.HasIndex("LoggedByAccountId");
 
-                    b.HasIndex("StudentId", "LoggedAtUtc");
+                    b.HasIndex("ClassId", "LocalDate");
+
+                    b.HasIndex("StudentId", "LocalDate", "LogType");
 
                     b.ToTable("ActivityLogs", (string)null);
                 });
@@ -133,7 +153,6 @@ namespace NurseryLink.Infrastructure.Migrations
             modelBuilder.Entity("NurseryLink.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Action")
@@ -173,7 +192,6 @@ namespace NurseryLink.Infrastructure.Migrations
             modelBuilder.Entity("NurseryLink.Domain.Entities.Class", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAtUtc")
@@ -197,26 +215,47 @@ namespace NurseryLink.Infrastructure.Migrations
 
             modelBuilder.Entity("NurseryLink.Domain.Entities.ClassTeacher", b =>
                 {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AssignmentType")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("ClassId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EndedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("StartedAtUtc")
+                        .HasColumnType("datetime2");
 
                     b.Property<Guid>("TeacherAccountId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("AssignedAtUtc")
-                        .HasColumnType("datetime2");
+                    b.HasKey("Id");
 
-                    b.HasKey("ClassId", "TeacherAccountId");
+                    b.HasIndex("ClassId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ClassTeachers_OneCurrentPermanentTeacherPerClass")
+                        .HasFilter("[EndedAtUtc] IS NULL AND [AssignmentType] = 0");
 
-                    b.HasIndex("TeacherAccountId");
+                    b.HasIndex("ClassId", "EndedAtUtc");
 
-                    b.ToTable("ClassTeachers", (string)null);
+                    b.HasIndex("TeacherAccountId", "EndedAtUtc");
+
+                    b.ToTable("ClassTeachers", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ClassTeachers_EndsAfterStart", "[EndedAtUtc] IS NULL OR [EndedAtUtc] > [StartedAtUtc]");
+                        });
                 });
 
             modelBuilder.Entity("NurseryLink.Domain.Entities.Notification", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAtUtc")
@@ -283,10 +322,49 @@ namespace NurseryLink.Infrastructure.Migrations
                     b.ToTable("ParentStudents", (string)null);
                 });
 
+            modelBuilder.Entity("NurseryLink.Domain.Entities.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByIp")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ReplacedByTokenId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("RevokedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("AccountId", "RevokedAtUtc");
+
+                    b.ToTable("RefreshTokens", (string)null);
+                });
+
             modelBuilder.Entity("NurseryLink.Domain.Entities.Student", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAtUtc")
@@ -330,21 +408,30 @@ namespace NurseryLink.Infrastructure.Migrations
 
                     b.HasIndex("CreatedByAdminId");
 
-                    b.ToTable("Admins", (string)null);
+                    b.ToTable("Admins", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Accounts_SeededAccountStaysActive", "[IsSeeded] = 0 OR [IsActive] = 1");
+                        });
                 });
 
             modelBuilder.Entity("NurseryLink.Domain.Entities.Parent", b =>
                 {
                     b.HasBaseType("NurseryLink.Domain.Entities.Account");
 
-                    b.ToTable("Parents", (string)null);
+                    b.ToTable("Parents", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Accounts_SeededAccountStaysActive", "[IsSeeded] = 0 OR [IsActive] = 1");
+                        });
                 });
 
             modelBuilder.Entity("NurseryLink.Domain.Entities.Teacher", b =>
                 {
                     b.HasBaseType("NurseryLink.Domain.Entities.Account");
 
-                    b.ToTable("Teachers", (string)null);
+                    b.ToTable("Teachers", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Accounts_SeededAccountStaysActive", "[IsSeeded] = 0 OR [IsActive] = 1");
+                        });
                 });
 
             modelBuilder.Entity("NurseryLink.Domain.Entities.ActivityLog", b =>
@@ -401,13 +488,13 @@ namespace NurseryLink.Infrastructure.Migrations
                     b.HasOne("NurseryLink.Domain.Entities.Class", "Class")
                         .WithMany("ClassTeachers")
                         .HasForeignKey("ClassId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("NurseryLink.Domain.Entities.Teacher", "TeacherAccount")
                         .WithMany("ClassTeachers")
                         .HasForeignKey("TeacherAccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Class");
@@ -464,6 +551,17 @@ namespace NurseryLink.Infrastructure.Migrations
                     b.Navigation("Student");
                 });
 
+            modelBuilder.Entity("NurseryLink.Domain.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("NurseryLink.Domain.Entities.Account", "Account")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+                });
+
             modelBuilder.Entity("NurseryLink.Domain.Entities.Student", b =>
                 {
                     b.HasOne("NurseryLink.Domain.Entities.Class", "Class")
@@ -512,6 +610,8 @@ namespace NurseryLink.Infrastructure.Migrations
             modelBuilder.Entity("NurseryLink.Domain.Entities.Account", b =>
                 {
                     b.Navigation("ActivityLogs");
+
+                    b.Navigation("RefreshTokens");
                 });
 
             modelBuilder.Entity("NurseryLink.Domain.Entities.Class", b =>

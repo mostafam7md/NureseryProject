@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using NurseryLink.Application.Common.Exceptions;
 using NurseryLink.Application.Common.Interfaces;
 using NurseryLink.Domain.Entities;
@@ -66,6 +67,22 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             throw new ConflictException(
                 "That value is already taken by another record. Please use a different one.");
         }
+    }
+
+    public async Task<ITransactionScope> BeginTransactionAsync(CancellationToken cancellationToken = default)
+    {
+        var transaction = await Database.BeginTransactionAsync(cancellationToken);
+        return new TransactionScope(transaction);
+    }
+
+    private sealed class TransactionScope(IDbContextTransaction transaction) : ITransactionScope
+    {
+        public Task CommitAsync(CancellationToken cancellationToken = default) =>
+            transaction.CommitAsync(cancellationToken);
+
+        // Rolls back if CommitAsync was never called — disposing an uncommitted
+        // IDbContextTransaction is already a rollback, so there is nothing extra to do here.
+        public ValueTask DisposeAsync() => transaction.DisposeAsync();
     }
 
     private static bool IsUniqueViolation(DbUpdateException exception) =>

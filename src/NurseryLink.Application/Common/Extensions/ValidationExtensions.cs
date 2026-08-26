@@ -7,7 +7,9 @@ public static class ValidationExtensions
 {
     /// <summary>Runs the validator and turns failures into an <see cref="AppValidationException"/>,
     /// which the API surfaces as a 400 ValidationProblemDetails.</summary>
-    public static async Task ValidateAndThrowAsync<T>(
+    /// <remarks>Deliberately not named <c>ValidateAndThrowAsync</c>: FluentValidation ships an
+    /// extension by that name on the same type, and having both in scope is an ambiguous call.</remarks>
+    public static async Task ValidateOrThrowAsync<T>(
         this IValidator<T> validator,
         T instance,
         CancellationToken cancellationToken = default)

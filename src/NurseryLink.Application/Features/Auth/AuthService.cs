@@ -33,7 +33,7 @@ public sealed class AuthService(
 {
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
-        await loginValidator.ValidateAndThrowAsync(request, cancellationToken);
+        await loginValidator.ValidateOrThrowAsync(request, cancellationToken);
 
         var normalized = Account.Normalize(request.UserNameOrEmail);
 
@@ -79,7 +79,7 @@ public sealed class AuthService(
     /// </summary>
     public async Task<AuthResponse> RefreshAsync(RefreshRequest request, CancellationToken cancellationToken = default)
     {
-        await refreshValidator.ValidateAndThrowAsync(request, cancellationToken);
+        await refreshValidator.ValidateOrThrowAsync(request, cancellationToken);
 
         var hash = tokenService.HashRefreshToken(request.RefreshToken);
         var now = clock.UtcNow;
@@ -134,7 +134,7 @@ public sealed class AuthService(
 
     public async Task LogoutAsync(RefreshRequest request, CancellationToken cancellationToken = default)
     {
-        await refreshValidator.ValidateAndThrowAsync(request, cancellationToken);
+        await refreshValidator.ValidateOrThrowAsync(request, cancellationToken);
 
         var hash = tokenService.HashRefreshToken(request.RefreshToken);
 
