@@ -243,6 +243,17 @@ public sealed class ClassService(
             return await GetByIdAsync(classId, cancellationToken);
         }
 
+        // Ending the permanent tenure here would leave the class with no teacher while its students
+        // are still enrolled, and nobody could log for them. Neither real workflow needs it:
+        // reassignment goes through AssignTeacherAsync, which closes the outgoing tenure itself, and
+        // dissolving a class goes through DeactivateAsync, which closes every assignment.
+        if (assignment.AssignmentType == AssignmentType.Permanent)
+        {
+            throw new ConflictException(
+                "A class cannot be left without its permanent teacher. Assign a replacement "
+                + "teacher instead, or dissolve the class if it is no longer running.");
+        }
+
         var now = clock.UtcNow;
         assignment.EndedAtUtc = CloseOutAt(assignment.StartedAtUtc, now);
 

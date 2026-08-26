@@ -12,6 +12,12 @@ public static class NurseryConstants
     public const int PasswordHashMaxLength = 500;
     public const int ClassNameMaxLength = 50;
     public const int StudentCodeMaxLength = 20;
+
+    /// <summary>Upper bound used to sanity-check a student date of birth.</summary>
+    public const int MaxStudentAgeYears = 12;
+
+    /// <summary>Prefix for system-allocated student codes: NUR-2026-0001.</summary>
+    public const string StudentCodePrefix = "NUR";
     public const int NoteMaxLength = 500;
     public const int MessageMaxLength = 500;
     public const int ActionMaxLength = 100;

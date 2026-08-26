@@ -20,6 +20,12 @@ public sealed class CurrentUser(IHttpContextAccessor accessor) : ICurrentUser
     public bool IsAdmin =>
         Principal?.HasClaim(ClaimTypes.Role, AppRoles.Admin) ?? false;
 
+    public bool IsTeacher =>
+        Principal?.HasClaim(ClaimTypes.Role, AppRoles.Teacher) ?? false;
+
+    public bool IsParent =>
+        Principal?.HasClaim(ClaimTypes.Role, AppRoles.Parent) ?? false;
+
     public bool HasPrivilege(Privilege privilege) =>
         Principal?.HasClaim(AppClaims.Privilege, privilege.ToString()) ?? false;
 

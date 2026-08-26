@@ -17,3 +17,11 @@ public sealed class AppValidationException(IDictionary<string, string[]> errors)
 {
     public IDictionary<string, string[]> Errors { get; } = errors;
 }
+
+/// <summary>
+/// The request was well-formed and the caller was allowed to make it, but a domain rule rejected
+/// the value — a temperature outside the plausible human range, for example. Surfaces as 422,
+/// which separates "you sent nonsense" (400) from "this value cannot be true" (422).
+/// </summary>
+public sealed class UnprocessableEntityException(string message)
+    : Exception(message);

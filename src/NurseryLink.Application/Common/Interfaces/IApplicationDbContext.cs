@@ -13,6 +13,10 @@ public interface IApplicationDbContext
     DbSet<Class> Classes { get; }
     DbSet<ClassTeacher> ClassTeachers { get; }
     DbSet<Student> Students { get; }
+    DbSet<ParentStudent> ParentStudents { get; }
+    DbSet<ActivityLog> ActivityLogs { get; }
+    DbSet<Notification> Notifications { get; }
+    DbSet<ParentNotification> ParentNotifications { get; }
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
 
